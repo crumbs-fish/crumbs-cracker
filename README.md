@@ -30,17 +30,70 @@
 [LICENSE](LICENSE)。随包引擎（john / hashcat / 7-Zip / unrar / Python）保持各自原许可，逐条见
 [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md)。
 
-### 安装
+### 使用
 
-驱动零依赖，有 Python 3.8+ 就能跑；引擎和复核工具另外装。
+到 [Releases](https://github.com/crumbs-fish/crumbs-cracker/releases) 页下载对应平台的便携包：
 
-Linux（Debian/Ubuntu）：
+| 平台 | 文件 | 打开方式 |
+| --- | --- | --- |
+| Linux x64 | `crumbs-cracker-portable-linux-x64-YYYYMMDD.7z` | `7z x` 解压 |
+| Windows x64 | `crumbs-cracker-portable-win64-sfx-YYYYMMDD.exe` | 双击自解压 |
+
+Windows 版把 Python 都内置了，所以做成自解压 exe（资源管理器默认不认 .7z）；老杀软偶尔会报
+未知自解压程序，加信任即可。解压后进目录，Linux 用 `./crumbs-cracker.sh`，Windows 用
+`crumbs-cracker.bat`，后面接同样的命令。
+
+先看包的情况（格式、哈希、选哪个引擎、要跑什么命令）：
+
+```bash
+./crumbs-cracker.sh check secret.zip
+./crumbs-cracker.sh check secret.zip --json
+```
+
+三种攻击方式：
+
+```bash
+# 字典：words.txt 里逐行放候选密码
+./crumbs-cracker.sh crack secret.zip -a wordlist -w words.txt
+
+# 掩码：比如 4 位纯数字
+./crumbs-cracker.sh crack secret.zip -a mask -m "?d?d?d?d"
+
+# 混合：每个字典词后面接 2 位数字
+./crumbs-cracker.sh crack secret.zip -a hybrid -w words.txt -m "?d?d"
+```
+
+不知道密码多长就 `--len-min 1 --len-max 12`，会一位一位试过去。什么都不带直接运行，
+会进中文问答向导。校验值以 `releases/SHA256SUMS` 为准。
+
+退出码：0 找到（或 check 通过）、1 没找到、2 环境或参数有问题（缺工具、格式不支持），
+写脚本可以直接按退出码判断。
+
+### 引擎怎么选
+
+默认 auto：先用 `hashcat -I` 探一遍，有 GPU 就用 hashcat，没有就用 john 吃满 CPU。
+hashcat 跑到一半报显存不足之类，auto 会自动换 john 重跑一次。`--engine hashcat` 或
+`--engine john` 可以钉死，钉死之后失败就报错，不会自己换。
+
+### 从源码构建
+
+```bash
+git clone https://github.com/crumbs-fish/crumbs-cracker
+cd crumbs-cracker
+```
+
+驱动本身零依赖，有 Python 3.8+ 就能跑；引擎和复核工具要另外装，装完写一份
+`engines/engines.json` 指过去（键：`john_bin` / `hashcat_bin` / `zip2john` / `rar2john` /
+`sevenz2john` / `unrar_bin` / `rar_bin` / `sevenz_bin` / `perl_bin`，找不到文件或不想写
+也可以 `--engines` 指到自己的配置）。
+
+Linux（Debian/Ubuntu）装引擎：
 
 ```bash
 sudo apt install hashcat unrar p7zip-full john
 ```
 
-想跟项目实测环境一致，可以用 bleeding-jumbo 的 john：
+想跟项目实测环境一致，用 bleeding-jumbo 的 john：
 
 ```bash
 git clone --depth 1 https://github.com/openwall/john.git
@@ -67,39 +120,7 @@ powershell -ExecutionPolicy Bypass -File scripts\win-bootstrap.ps1
 国内网络常见情况：github.com 直连可能不通，需要代理；python.org 直链可能停摆，可以换清华镜像；
 rarlab 下载要带 User-Agent；系统自带的 tar.exe（bsdtar）解不了 hashcat 的 .7z。
 
-### 使用
-
-先看包的情况（格式、哈希、选哪个引擎、要跑什么命令）：
-
-```bash
-python3 crumbs_cracker.py check secret.zip
-python3 crumbs_cracker.py check secret.zip --json
-```
-
-三种攻击方式：
-
-```bash
-# 字典：words.txt 里逐行放候选密码
-python3 crumbs_cracker.py crack secret.zip -a wordlist -w words.txt
-
-# 掩码：比如 4 位纯数字
-python3 crumbs_cracker.py crack secret.zip -a mask -m "?d?d?d?d"
-
-# 混合：每个字典词后面接 2 位数字
-python3 crumbs_cracker.py crack secret.zip -a hybrid -w words.txt -m "?d?d"
-```
-
-不知道密码多长就 `--len-min 1 --len-max 12`，会一位一位试过去。Windows 上把
-`python3 crumbs_cracker.py` 换成 `crumbs-cracker.bat`。
-
-退出码：0 找到（或 check 通过）、1 没找到、2 环境或参数有问题（缺工具、格式不支持），
-写脚本可以直接按退出码判断。
-
-### 引擎怎么选
-
-默认 auto：先用 `hashcat -I` 探一遍，有 GPU 就用 hashcat，没有就用 john 吃满 CPU。
-hashcat 跑到一半报显存不足之类，auto 会自动换 john 重跑一次。`--engine hashcat` 或
-`--engine john` 可以钉死，钉死之后失败就报错，不会自己换。
+装完之后，用 `python3 crumbs_cracker.py` 代替上面的 `./crumbs-cracker.sh`，参数完全一样。
 
 ### 跑得有多快
 
@@ -125,24 +146,9 @@ rar4 在 CPU 上特别慢是因为 RAR3 要滚 262144 轮 SHA-1，GPU 上差距�
 * 上游 zip2john 对部分包输出旧式 `$pkzip$` 签名，映射关系没全验证。驱动会先让 hashcat 试，
   试不动再退回 john 并打警告；常见的 `$pkzip2$` 多文件 zip 是验证过的。
 * 7z 连文件名一起加密时，提取哈希必须经过 7z2john.pl 和 Perl 的 Compress::Raw::Lzma。
-  Windows 包里自带 Strawberry Perl，Linux 看安装一节。
+  Windows 包里自带 Strawberry Perl，Linux 看从源码构建一节。
 * 命中的密码一定要用 7z / unrar / rar 解压复核，缺工具直接报错，宁可不报结果也不报假结果。
 * Windows 引导脚本要从 openwall 下 john-jumbo（15 MB 左右），那家网速经常只有 8 KB/s，请留半小时。
-
-### 便携包
-
-不想折腾引擎的话，直接到 [Releases](https://github.com/crumbs-fish/crumbs-cracker/releases) 页
-下载两个包：Linux 是 .7z 解压即用，Windows 是双击自解压的 exe，连 Python 都内置。校验值以
-`releases/SHA256SUMS` 为准。
-
-| 平台 | 文件 |
-| --- | --- |
-| Linux x64 | `crumbs-cracker-portable-linux-x64-YYYYMMDD.7z` |
-| Windows x64 | `crumbs-cracker-portable-win64-sfx-YYYYMMDD.exe` |
-
-Windows 做成自解压 exe 而不是 .7z，是因为资源管理器默认不认 .7z，用户还得先装 7-Zip——可 7-Zip
-就在包里，先有鸡后有蛋。exe 双击就解开，代价是老杀软偶尔会报未知自解压程序，加信任即可。
-Linux 侧没必要，发行版里 7z 随手就有。
 
 ### 致谢
 
@@ -165,8 +171,6 @@ Linux 侧没必要，发行版里 7z 随手就有。
 直说：这个仓库的代码、文档、打包脚本全部由 AI 生成（DeepSeek-V4-Pro 为主，DeepSeek-V4-Flash 干子任务），
 时间是 2026-11-10 到 2026-11-22，人类做的是提需求、验收和真机测试。细节在
 [AI_DISCLOSURE.md](AI_DISCLOSURE.md)。
-
-项目主页（上线后）：https://github.com/crumbs-fish/crumbs-cracker
 
 ### 合法使用
 
