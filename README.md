@@ -175,6 +175,24 @@ Linux 侧不用 SFX：`7z`/`7zz` 在发行版里随手可得，`.7z` 更透明�
 
 两包的分发版都放在 `/home/coulddisk/压缩包爆破/`（同名 `.sha256` 校验）。
 
+## 复用的项目与致谢
+
+本项目的破解能力全部来自这些开源项目——我们只写驱动（识别、提取、调度、复核），没有实现任何密钥派生：
+
+| 项目 | 版本 | 许可证 | 我们用它的什么 |
+| --- | --- | --- | --- |
+| [John the Ripper jumbo](https://github.com/openwall/john) | 1.9.0-jumbo-1+bleeding-37bebbe4b64 | GPL-2.0-or-later | `zip2john` / `rar2john` 提取哈希；CPU 引擎（PKZIP / ZIP / 7z / rar / RAR5）；`--mask`、`--stdin`、`-1=` 自定义字符集 |
+| [hashcat](https://github.com/hashcat/hashcat) | 6.2.6（Windows 为 6.2.6 官方压缩包） | MIT | GPU 引擎；`--identify` 自动判模式；`-m 13600/11600/13000/23800/17200-17230`；`$HEX[]` 出码、potfile 隔离、`-b` 基准 |
+| [7-Zip](https://www.7-zip.org/) | 23.01（`7zz` / `7z.exe`）+ `7z2hashcat` | LGPL-2.1-or-later（含 unRAR 限制条款） | 解包与密码复核；`-mhe=on` 的 7z 提取辅助；自解压模块 `7zCon.sfx`；Linux 包里的静态 `7zz` |
+| [UnRAR](https://www.rarlab.com/rar_add.htm) | 6.x（`unrar`） | UnRAR 免费许可（禁止用于重建 RAR 压缩算法） | `rar` 密码复核（7z 复核不了 rar 时） |
+| [Perl](https://www.perl.org/) `Compress::Raw::Lzma` | 5.x | Perl 5 license（Artistic-1.0 / GPL-1.0-or-later） | Linux 包里 vendor 的 `.so`，只给 `7z2john.pl` 解析 7z 用 |
+| [Python](https://www.python.org/) | 3.8+（Windows 包内置 3.11 embeddable） | PSF-2.0 | 驱动运行时，仅标准库 |
+
+谢谢上面所有作者和维护者：没有 john-jumbo 的格式覆盖、hashcat 的 GPU 内核、7-Zip 的稳定解包，
+这个驱动只会是一个漂亮的命令行壳子。也感谢 [Openwall](https://www.openwall.com/) 与 [hashcat 团队](https://hashcat.net/)
+长期维护这些工具，并允许在保留各自许可证的前提下再分发。
+
+随包二进制的许可证原文与分发义务见 [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md)。
 ## 许可证
 
 - 驱动代码（`crumbs_cracker.py`、`scripts/`、`tests/`、`docs/`）：**GPL-2.0-or-later**，全文见 [LICENSE](LICENSE)。
