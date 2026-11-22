@@ -38,6 +38,12 @@ def main():
     check('mask 单轮溢出 rc=2', rc == 2 and '组合数过大' in out, 'rc=%s' % rc)
 
     # 2) 逐位尝试：后面的位数超限只截断，前面的照常跑
+    #    需要真样本 + 真引擎；CI 或新克隆的仓库没有 engines/，此时跳过实跑用例
+    have_env = FX.exists() and (ROOT / 'engines' / 'engines.json').exists()
+    if not have_env:
+        print('skip 实跑用例：缺少 %s 或 engines/engines.json（先跑 tests/rebuild-fixtures.sh）' % FX)
+        return 0 if ok else 1
+
     rc, out = run(['crack', '-a', 'mask', '-m', '?a', '--len-min', '1', '--len-max', '12',
                    '--dry-run', str(FX / 'mask.zip')])
     check('逐位 1-12 位截到 9 位（rc=0）', rc == 0 and '本次只逐位尝试 1-9 位' in out, 'rc=%s' % rc)
