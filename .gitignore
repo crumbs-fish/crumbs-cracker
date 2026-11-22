@@ -1,0 +1,15 @@
+# 打包中间产物与大体积引擎（不入库，见 docs/REBUILD.md）
+dist/
+engines/
+__pycache__/
+*.pyc
+*.pyo
+*.7z
+*.exe
+*.sha256
+!vendor/7zCon.sfx
+!vendor/7z.sfx
+
+# 发布包（体积大，按 GitHub Release 附件方式存放，不入 git）
+releases/*.7z
+releases/*.exe

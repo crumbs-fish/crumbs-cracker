@@ -1,0 +1,146 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""hashcat 桩：
+- -I 输出 GPU/CPU 探测结果（CRUMBS_STUB_GPU=1 时模拟 Windows GTX 1650 输出）
+- --identify 按 sigil 输出压缩包族模式
+- 破解调用把明文写进 -o/--outfile 指定的 outfile，模拟成功
+- CRUMBS_STUB_HC_GPU_FAIL=1 模拟 GPU 内存分配失败（rc 2 + Not enough allocatable device memory）
+- CRUMBS_STUB_HC_NO_OPENCL=1 模拟无 OpenCL 设备（rc 2 + No OpenCL devices found）
+"""
+import os
+import sys
+
+SIGIL_MODES = {
+    "$zip2$": (13600, "WinZip"),
+    "$pkzip2$": (17220, "PKZIP (Compressed Multi-File)"),
+    "$7z$": (11600, "7-Zip"),
+    "$rar5$": (13000, "RAR5"),
+    "$RAR3$*1*": (23800, "RAR3-p (Compressed)"),
+    "$RAR3$": (12500, "RAR3-hp"),
+}
+
+
+def find_hashfile(args):
+    for a in args:
+        if not a.startswith("-") and os.path.isfile(a):
+            return a
+    return None
+
+
+def find_value(args, flag):
+    for i, a in enumerate(args):
+        if a == flag and i + 1 < len(args):
+            return args[i + 1]
+        if a.startswith(flag + "="):
+            return a.split("=", 1)[1]
+    return None
+
+
+def main():
+    args = sys.argv[1:]
+    if "-I" in args:
+        gpu = os.environ.get("CRUMBS_STUB_GPU", "0") == "1"
+        style = os.environ.get("CRUMBS_STUB_I_STYLE", "linux")
+        sep = "\r\n" if style == "windows" else "\n"
+        if gpu:
+            lines = [
+                "hashcat (v6.2.6) starting in backend information mode",
+                "",
+                "OpenCL Info:",
+                "============",
+                "",
+                "OpenCL Platform ID #1",
+                "  Vendor..: NVIDIA Corporation",
+                "  Name....: NVIDIA CUDA",
+                "  Version.: OpenCL 3.0 CUDA 11.6.134",
+                "",
+                "  Backend Device ID #1",
+                "    Type........: GPU",
+                "    Vendor.ID...: 32",
+                "    Vendor......: NVIDIA Corporation",
+                "    Name........: NVIDIA GeForce GTX 1650",
+                "    Version.....: OpenCL 3.0 CUDA",
+                "    Processor(s): 16",
+                "    Clock.......: 1560 MHz",
+                "    Memory.Total: 4095 MB (limited to 1024 MB allocatable in one batch)",
+                "    Memory.Free.: 3322 MB",
+                "",
+                "OpenCL Platform ID #2",
+                "  Vendor..: The pocl project",
+                "  Name....: Portable Computing Language",
+                "",
+                "  Backend Device ID #1",
+                "    Type...........: CPU",
+                "    Name...........: pthread-Intel(R) Core(TM) i5-9400F CPU @ 2.90GHz",
+            ]
+        else:
+            lines = [
+                "OpenCL Info:",
+                "============",
+                "OpenCL Platform ID #1",
+                "  Vendor..: Stub Vendor",
+                "  Name....: Stub Platform",
+                "",
+                "  Backend Device ID #1",
+            ]
+            if style == "windows":
+                lines.append("    Type: CPU")
+            else:
+                lines.append("    Type...........: CPU")
+            lines.append("    Name...........: Stub CPU (pocl)")
+        sys.stdout.write(sep.join(lines) + sep)
+        return 0
+    if "--identify" in args:
+        if os.environ.get("CRUMBS_STUB_IDENTIFY_EMPTY", "0") == "1":
+            return 0
+        hashfile = find_hashfile(args)
+        if not hashfile:
+            return 1
+        with open(hashfile, encoding="utf-8", errors="replace") as fh:
+            first = fh.readline().strip()
+        mode, name = None, None
+        for sigil, pair in SIGIL_MODES.items():
+            if first.startswith(sigil):
+                mode, name = pair
+                break
+        if mode is None:
+            return 0
+        print("      # | Name                                    | Category")
+        print("  ======+=========================================+======================================")
+        print("  %5d | %-40s | Archive" % (mode, name))
+        return 0
+    if os.environ.get("CRUMBS_STUB_NO_HASHES", "0") == "1":
+        sys.stderr.write("Hashfile 'x' on line 1: No hashes loaded\n")
+        return 1
+    if os.environ.get("CRUMBS_STUB_HC_MEM_FAIL", "0") == "1":
+        sys.stderr.write("Not enough allocatable device memory\n")
+        return 2
+    if os.environ.get("CRUMBS_STUB_HC_GPU_FAIL", "0") == "1":
+        sys.stderr.write("Not enough allocatable device memory\n")
+        return 2
+    if os.environ.get("CRUMBS_STUB_HC_NO_OPENCL", "0") == "1":
+        sys.stderr.write("No OpenCL devices found\n")
+        return 2
+    log = os.environ.get("CRUMBS_STUB_LOG_POTDIR")
+    if log:
+        potfile = find_value(args, "--potfile-path")
+        if potfile:
+            parent = os.path.dirname(os.path.abspath(potfile))
+            with open(log, "a", encoding="utf-8") as fh:
+                fh.write(parent + "\n")
+    fail = os.environ.get("CRUMBS_STUB_HC_FAIL", os.environ.get("CRUMBS_STUB_FAIL", "0"))
+    outfile = find_value(args, "-o") or find_value(args, "--outfile")
+    if fail == "2":
+        sys.stderr.write("stub: simulated hashcat backend error\n")
+        return 2
+    if fail == "1":
+        return 1
+    if outfile:
+        password = os.environ.get("CRUMBS_STUB_PW", "secret")
+        with open(outfile, "w", encoding="utf-8") as fh:
+            fh.write(password + "\n")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

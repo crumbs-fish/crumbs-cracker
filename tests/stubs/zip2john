@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""提取器桩：按文件头魔术字节输出对应格式的假哈希（同时充当 zip2john/rar2john/7z2john）。"""
+import os
+import sys
+
+
+def main():
+    if os.environ.get("CRUMBS_STUB_FAIL", "0") == "1":
+        return 1
+    if len(sys.argv) < 2:
+        return 1
+    path = sys.argv[1]
+    try:
+        with open(path, "rb") as fh:
+            head = fh.read(8)
+    except OSError:
+        return 1
+    if head.startswith(b"PK\x03\x04") or head.startswith(b"PK\x05\x06") or head.startswith(b"PK\x07\x08"):
+        print("$pkzip2$1*1*2*0*0*0*stub*zip*stub*$/pkzip2$")
+        return 0
+    if head.startswith(b"7z\xbc\xaf\x27\x1c"):
+        print("$7z$0$19$0$stub$stub$stub$stub$stub$stub$stub")
+        return 0
+    if head.startswith(b"Rar!\x1a\x07\x01\x00"):
+        print("$rar5$16$stub$stub$stub")
+        return 0
+    if head.startswith(b"Rar!\x1a\x07\x00"):
+        print("$RAR3$*0*stub*stub")
+        return 0
+    return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

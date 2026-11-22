@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""john 桩：破解调用静默成功；--show 输出 <来源文件>:<明文> 模拟真实 --show。"""
+import os
+import sys
+
+
+def main():
+    args = sys.argv[1:]
+    fail = os.environ.get("CRUMBS_STUB_FAIL", "0") == "1"
+    if "--show" in args:
+        if fail:
+            return 1
+        hashfile = None
+        for a in args:
+            if not a.startswith("-") and os.path.isfile(a):
+                hashfile = a
+        if hashfile:
+            password = os.environ.get("CRUMBS_STUB_PW", "secret")
+            print(hashfile + ":" + password)
+        print("1 password hash cracked, 0 left")
+        return 0
+    return 1 if fail else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

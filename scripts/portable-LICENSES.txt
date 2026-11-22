@@ -1,0 +1,22 @@
+第三方组件与许可
+================
+engines/john/run/john, zip2john, rar2john, 7z2john.pl
+  John the Ripper jumbo (1.9.0-jumbo-1+bleeding-37bebbe4b64)
+  GPLv2+ / 部分组件为更宽松许可；源码见 https://github.com/openwall/john
+
+engines/bin/7z
+  7-Zip 命令行（p7zip 26.02 提供的 7z 二进制）
+  GNU LGPL v2.1+、部分 BSD；源码见 https://www.7-zip.org/
+
+engines/bin/unrar
+  UnRAR（RARLAB 6.2.6）
+  免费使用，用于解包/校验 RAR；见 https://www.rarlab.com/license.htm
+
+engines/vendor/perl5
+  Perl 模块 Compress::Raw::Lzma（Debian libcompress-raw-lzma-perl 解包）
+  Perl 5 许可（GPLv1+ / Artistic）
+
+engines/hashcat（hashcat.exe / hashcat.bin / modules / OpenCL）
+  hashcat 6.2.6（MIT 许可）；源码见 https://github.com/hashcat/hashcat
+  只保留压缩包相关模式模块（11600/12500/13000/13600/17200/17210/17220/17225/17230/23700/23800），
+  其余模式模块未随包分发。
