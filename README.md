@@ -29,8 +29,8 @@ rar4 是自定义 SHA-1 迭代。自己实现既慢（没有 SIMD/GPU 内核）�
     docs/USAGE.md        详细用法
     tests/               桩测试与样本生成
 
-**多线程**：由引擎负责。john 用 OpenMP 吃满所有 CPU 核心（本机 2 核实测
-`Will run 2 OpenMP threads`）；hashcat 在 GPU 上用数千个着色器核心。
+**多线程**：由引擎负责。john 用 OpenMP 吃满所有 CPU 核心（启动日志会打印
+`Will run N OpenMP threads`）；hashcat 在 GPU 上用数千个着色器核心。
 驱动本身不复制线程池——重复实现只会和引擎抢 CPU。
 
 ## 快速开始
@@ -93,10 +93,10 @@ Windows 用 `crumbs-cracker.bat` 替代 `python3 crumbs_cracker.py`。
     powershell -ExecutionPolicy Bypass -File scripts\win-bootstrap.ps1           # 真装
 
 脚本装 7-Zip、hashcat、john-jumbo win64、Strawberry Perl、Python 3.12，并生成 engines.json。
-Windows 上的网络注意事项（实测）：github.com 直连不通，需 gh-proxy；python.org 直链会停摆，
+Windows 上的网络注意事项（常见情况）：github.com 直连可能不通，需要代理；python.org 直链可能停摆，
 改用清华镜像；rarlab 需要带 `User-Agent`；系统自带 `tar.exe`(bsdtar) **不能**解 hashcat 的 .7z。
 
-## 实测结果（本机 Debian 12，2 核 CPU，无 GPU）
+## 实测结果（CPU 引擎）
 
 | 样本 | 格式 | 提取器 | 引擎 | 结果 |
 |---|---|---|---|---|
@@ -110,9 +110,9 @@ Windows 上的网络注意事项（实测）：github.com 直连不通，需 gh-
 
 rar4 明显更慢：RAR3 的 KDF 是 262144 轮 SHA-1，CPU 上天然吃亏；GPU 上差距会缩小。
 
-## GPU 实测（RTX 4060 8 GB 台式机 / 驱动 565.90 / hashcat 6.2.6）
+## GPU 实测（hashcat 6.2.6）
 
-| 格式 | hashcat 模式 | 吞吐 | 对照 john CPU（2 核） |
+| 格式 | hashcat 模式 | 吞吐（参考显卡） | 对照 john CPU |
 |---|---|---|---|
 | zip AES-256 | 13600 | 2930 kH/s | 54 kH/s |
 | zip ZipCrypto（多文件） | 17225 | 96 亿 H/s | 17672 kH/s |
@@ -127,7 +127,7 @@ rar4 明显更慢：RAR3 的 KDF 是 262144 轮 SHA-1，CPU 上天然吃亏；GP
 - rar4 在 GPU 上比 CPU 快约 227 倍（30681 vs 135 H/s）。早期版本曾因误读那行 13 H/s
   让 auto 对 rar4 退回 john，该规则已撤销。
 - 便携包自带裁剪版 hashcat（只留压缩包族 12 个 module + OpenCL 内核），包内
-  `hashcat.exe -I` 能正确识别 RTX 4060；Linux 包内是 `hashcat.bin`。
+  `hashcat.exe -I` 能正确识别显卡；Linux 包内是 `hashcat.bin`。
 驱动级验收（同一批样本，走 `crumbs_cracker.py` 全链路：识别 → 提取哈希 → 选引擎 → 破解 → 复核）：
 **7 个档案 × 3 项断言 = 21/21 通过**（`check` 可解析、正确密码 `found=true`、错误密码 `found=false`），
 覆盖 zip ZipCrypto、zip AES-256、多文件 zip、7z（含加密文件名）、7z 不加密头、rar4、rar5。
@@ -138,9 +138,9 @@ hybrid 在 john 上走 `--stdin --mask=?w<mask>`，词表以**文件句柄**喂�
 ## 局限与已知风险
 
 1. **hashcat 只在有 GPU 时才有意义**。无独显/无驱动时 hashcat 退化成 OpenCL CPU，
-   本机 pocl 只给 256 MB 单块，任何模式都 `Not enough allocatable device memory`；
+   某些 OpenCL CPU 实现只给单块小显存，任何模式都报 `Not enough allocatable device memory`；
    此时 auto 自动回落 john（已实测），强制 `--engine hashcat` 会明确报错。
-   GPU 路径已在 RTX 4060 台式机上逐格式验证（见上一节）。
+   GPU 路径已逐格式验证（见上一节）。
 2. **legacy `$pkzip$` 先试 GPU**。上游 zip2john 对部分包输出 `$pkzip$`（不是 `$pkzip2$`），
    auto 现在先让 hashcat 在 17200/17210/17220/17225 里试；若 hashcat 报 `No hashes loaded`
    等结构性错误，自动改用 john 重跑并打警告。`$pkzip2$`（多文件 zip）走 17220/17225，已实测能破出。
@@ -148,7 +148,7 @@ hybrid 在 john 上走 `--stdin --mask=?w<mask>`，词表以**文件句柄**喂�
    Windows 由 Strawberry Perl 提供，Linux 需按上面的办法 vendor。
 4. **复核工具必须齐全**：命中后用 7z/unrar/rar 复核，缺少复核工具会直接报错（exit 2），
    而不是把正确密码误判成 NOT FOUND。
-5. Windows 一键脚本里的 john-jumbo win64 包从 openwall 下载约 8 KB/s（15 MB 要约 30 分钟），
+5. Windows 一键脚本里的 john-jumbo win64 包从 openwall 下载较慢（实测可达 8 KB/s，15 MB 要半小时），
    脚本未设超时，请预留时间。
 
 ## 退出码
@@ -173,7 +173,7 @@ Windows 用 SFX 而不是 `.7z`：Win10 资源管理器不认 `.7z`，用户得�
 代价是老一些的杀软会对自解压 exe 报「未知的自解压程序」，加信任即可。
 Linux 侧不用 SFX：`7z`/`7zz` 在发行版里随手可得，`.7z` 更透明。
 
-两包的分发版都放在 `/home/coulddisk/压缩包爆破/`（同名 `.sha256` 校验）。
+两包的分发版都放在 `releases/`（同名 `.sha256` 校验，见 `releases/SHA256SUMS`）。
 
 ## 复用的项目与致谢
 
