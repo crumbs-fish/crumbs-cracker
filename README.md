@@ -158,10 +158,12 @@ hybrid 在 john 上走 `--stdin --mask=?w<mask>`，词表以**文件句柄**喂�
     2  环境/参数错误（缺工具、格式不支持、引擎报错）
 ## 分发产物
 
-| 平台 | 文件 | 大小 | sha256 |
-| --- | --- | --- | --- |
-| Linux x64 | `crumbs-cracker-portable-linux-x64-20261122.7z` | 9,790,607 B | `542465e230f8f26bed966d1e8117a0ca06c9393ddaaa59ee3b1a37f9b91acc92` |
-| Windows x64 | `crumbs-cracker-portable-win64-sfx-20261122.exe` | 34,414,225 B | `45272e10a37b1a65c142a008769edba296fd3b28f9565abf992e8ae0916b2037` |
+| 平台 | 文件 | 说明 |
+| --- | --- | --- |
+| Linux x64 | `crumbs-cracker-portable-linux-x64-20261122.7z` | 约 9.8 MB，LZMA2 `-mx=7`，解压即用（`scripts/build-portable.sh` 生成） |
+| Windows x64 | `crumbs-cracker-portable-win64-sfx-20261122.exe` | 约 34.4 MB，7-Zip 自解压单文件，双击即解压（`scripts/build-sfx-win.sh` 生成） |
+
+校验值以 `releases/SHA256SUMS`（或交付目录里的同名 `.sha256`）为准——包会重打，哈希写在 README 里必然过期。
 
 Linux 包为 LZMA2 `-mx=7`（`scripts/build-portable.sh` 生成）；Windows 包为 7-Zip 自解压单文件
 `-mx=9 -m0=lzma2:d=64m:fb=273 -mmt=2`（`scripts/build-sfx-win.sh` 生成）。
