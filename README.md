@@ -32,28 +32,28 @@
 
 ### 使用
 
-到 [Releases](https://github.com/crumbs-fish/crumbs-cracker/releases) 页下载对应平台的便携包：
+到 Releases 页下载对应平台的便携包，按平台选一个：
 
-| 平台 | 文件 | 打开方式 |
+| 平台 | 文件 | 怎么打开 |
 | --- | --- | --- |
-| Linux x64 | `crumbs-cracker-portable-linux-x64-YYYYMMDD.7z` | `7z x` 解压 |
-| Windows x64 | `crumbs-cracker-portable-win64-sfx-YYYYMMDD.exe` | 双击自解压 |
+| Linux x64 | `crumbs-cracker-portable-linux-x64-YYYYMMDD.7z` | `7z x` 解压（没有 7z 先 `sudo apt install p7zip-full`） |
+| Windows x64 | `crumbs-cracker-portable-win64-sfx-YYYYMMDD.exe` | 双击自解压，也可以命令行静默解：`文件.exe -o"D:\目录" -y` |
 
-Windows 版把 Python 都内置了，所以做成自解压 exe（资源管理器默认不认 .7z）；老杀软偶尔会报
-未知自解压程序，加信任即可。解压后进目录，Linux 用 `./crumbs-cracker.sh`，Windows 用
-`crumbs-cracker.bat`，后面接同样的命令。
+Windows 版连 Python 都内置，解压完不用装任何东西；资源管理器默认不认 .7z，所以做成自解压 exe，
+个别杀软会拦，加信任就行。解压后进目录：Linux 用 `./crumbs-cracker.sh`，Windows 用
+`crumbs-cracker.bat`，两边后面接的命令完全一样。
 
-先看包的情况（格式、哈希、选哪个引擎、要跑什么命令）：
+第一步先认识一下这个包：
 
 ```bash
-./crumbs-cracker.sh check secret.zip
-./crumbs-cracker.sh check secret.zip --json
+./crumbs-cracker.sh check secret.zip        # 报格式、加密方式、打算用哪个引擎
+./crumbs-cracker.sh check secret.zip --json # 机器可读的原始输出
 ```
 
-三种攻击方式：
+确认没问题就挑一种方式开跑：
 
 ```bash
-# 字典：words.txt 里逐行放候选密码
+# 字典：words.txt 里一行一个候选密码
 ./crumbs-cracker.sh crack secret.zip -a wordlist -w words.txt
 
 # 掩码：比如 4 位纯数字
@@ -63,12 +63,14 @@ Windows 版把 Python 都内置了，所以做成自解压 exe（资源管理器
 ./crumbs-cracker.sh crack secret.zip -a hybrid -w words.txt -m "?d?d"
 ```
 
-不知道密码多长就 `--len-min 1 --len-max 12`，会一位一位试过去。什么都不带直接运行，
-会进中文问答向导。校验值以 `releases/SHA256SUMS` 为准。
+不知道密码多长，就 `--len-min 1 --len-max 12`，会从 1 位开始一位一位试，掩码和混合都支持。
+命中的密码都会先用 7z / unrar 真解压复核一遍，不会报假的。
 
-退出码：0 找到（或 check 通过）、1 没找到、2 环境或参数有问题（缺工具、格式不支持），
-写脚本可以直接按退出码判断。
+什么都不带直接运行 `./crumbs-cracker.sh`，会进中文问答向导，按提示回答攻击方式、字典、
+长度、字符集、要不要 GPU 就行，适合不想背参数的时候。
 
+下载完先跟 releases 目录里的 SHA256SUMS 对一遍 sha256 再用。退出码：0 找到（check 通过）、
+1 没找到、2 环境或参数有问题（缺工具、格式不支持），脚本里直接按退出码判断。
 ### 引擎怎么选
 
 默认 auto：先用 `hashcat -I` 探一遍，有 GPU 就用 hashcat，没有就用 john 吃满 CPU。
@@ -77,51 +79,61 @@ hashcat 跑到一半报显存不足之类，auto 会自动换 john 重跑一次�
 
 ### 从源码构建
 
+想自己搭环境、改代码，或者机器上没法用便携包的，从这里开始。先拿代码：
+
 ```bash
-git clone https://github.com/crumbs-fish/crumbs-cracker
+git clone https://github.com/crumbs-fish/crumbs-cracker.git
 cd crumbs-cracker
 ```
 
-驱动本身零依赖，有 Python 3.8+ 就能跑；引擎和复核工具要另外装，装完写一份
-`engines/engines.json` 指过去（键：`john_bin` / `hashcat_bin` / `zip2john` / `rar2john` /
-`sevenz2john` / `unrar_bin` / `rar_bin` / `sevenz_bin` / `perl_bin`，找不到文件或不想写
-也可以 `--engines` 指到自己的配置）。
+驱动本身零依赖，有 Python 3.8+ 就能跑；真正干活的是 john 和 hashcat，所以要把引擎装好，
+再写一份 `engines/engines.json` 告诉驱动它们在哪。九个键：`john_bin` / `hashcat_bin` /
+`zip2john` / `rar2john` / `sevenz2john` / `unrar_bin` / `rar_bin` / `sevenz_bin` /
+`perl_bin`，没写文件也行，每次用 `--engines` 指向自己的配置文件。
 
-Linux（Debian/Ubuntu）装引擎：
+Linux（Debian/Ubuntu）最省事的装法：
 
 ```bash
-sudo apt install hashcat unrar p7zip-full john
+sudo apt install hashcat p7zip-full unrar john
 ```
 
-想跟项目实测环境一致，用 bleeding-jumbo 的 john：
+这样拿到的是发行版自带的 john，够用。想跟项目实测环境一致，编译 bleeding-jumbo：
 
 ```bash
 git clone --depth 1 https://github.com/openwall/john.git
-cd john/src && ./configure && make -j$(nproc) && make -s ../run/john ../run/zip2john ../run/rar2john
+cd john/src
+./configure && make -j$(nproc)
+make -s ../run/john ../run/zip2john ../run/rar2john
 ```
 
-小坑：只编译 `zip2john` 一个目标会缺 `x86-64.o`、`simd-intrinsics.o` 链接失败，
-把 `../run/john` 一起带上就行。7z 连文件名一起加密（`-mhe=on`）需要 7z2john.pl，
-它依赖 Perl 的 Compress::Raw::Lzma，没 root 可以解 deb 到本地：
+这里有个坑：只编译 zip2john 一个目标会缺 x86-64.o、simd-intrinsics.o 而链接失败，
+把 `../run/john` 一起带上就行。
+
+7z 是连文件名一起加密的（7-Zip 的 `-mhe=on`）才需要 7z2john.pl 和 Perl 的
+Compress::Raw::Lzma；没 root 就把 deb 解到本地用：
 
 ```bash
-apt-get download libcompress-raw-lzma-perl && dpkg-deb -x libcompress-raw-lzma-perl_*.deb ./perl5
-PERL5LIB=./perl5/usr/lib/x86_64-linux-gnu/perl5/5.36 perl 7z2john.pl secret.7z
+apt-get download libcompress-raw-lzma-perl
+dpkg-deb -x libcompress-raw-lzma-perl_*.deb ./perl5
+PERL5LIB=./perl5/usr/lib/x86_64-linux-gnu/perl5/5.36 perl run/7z2john.pl secret.7z
 ```
 
-Windows：
+路径里的 `5.36` 是 Perl 小版本号，按你机器上的实际目录改。
+
+Windows 直接跑仓库里的引导脚本：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\win-bootstrap.ps1 -DryRun
-powershell -ExecutionPolicy Bypass -File scripts\win-bootstrap.ps1
+powershell -ExecutionPolicy Bypass -File scripts\win-bootstrap.ps1 -DryRun  # 先看它打算装什么
+powershell -ExecutionPolicy Bypass -File scripts\win-bootstrap.ps1          # 正式装
 ```
 
-脚本会装齐 7-Zip、hashcat、john-jumbo、Strawberry Perl、Python 3.12，并生成 engines.json。
-国内网络常见情况：github.com 直连可能不通，需要代理；python.org 直链可能停摆，可以换清华镜像；
-rarlab 下载要带 User-Agent；系统自带的 tar.exe（bsdtar）解不了 hashcat 的 .7z。
+脚本会装齐 7-Zip、hashcat、john-jumbo、Strawberry Perl、Python 3.12，最后生成
+`engines/engines.json`。国内网络几个常见坑：github.com 直连不通要挂代理；python.org 直链
+偶尔停摆，可以换清华镜像；rarlab 下载要带 User-Agent；系统自带 tar.exe（bsdtar）解不了
+hashcat 的 .7z。
 
-装完之后，用 `python3 crumbs_cracker.py` 代替上面的 `./crumbs-cracker.sh`，参数完全一样。
-
+装完先跑一条 `python3 crumbs_cracker.py check secret.zip` 确认引擎都接上了，之后所有命令
+用 `python3 crumbs_cracker.py` 代替 `./crumbs-cracker.sh`，参数完全一样。
 ### 跑得有多快
 
 下面是测试机上的参考数字，不同机器差别很大，尤其是显卡。CPU 一列是 john 的 OpenMP 全核，
