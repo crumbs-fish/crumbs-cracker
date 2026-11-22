@@ -23,13 +23,11 @@ Windows 上使用启动器：
 
 ## 内置字典（包内自带，开箱可用）
 
-    dicts/common.txt        10050 条常用口令（首选，几秒钟跑完）
-    dicts/common-100k.txt   100049 条（命中率更高，耗时约 10 倍）
+    dicts/common.txt        10001 条常用口令（首选，几秒钟跑完）
+    dicts/common-100k.txt   100000 条（命中率更高，耗时约 10 倍）
 
-常用口令取自 SecLists 的 10k-most-common 与 Pwdb top-100k，并在文件最前面固定加入以下
-业务关键词的**大小写全变体**（每个词 2^n 种组合）与中文词：
-
-    xyc  新英才  qzks  qmks  yk  ks
+内容取自 SecLists 的 10k-most-common 与 Pwdb top-100k 这类公开弱口令集合，已去掉项目相关的
+定制词条（原先手工加进去的学校/业务关键词已删除）。
 
 用法：
 
@@ -38,9 +36,9 @@ Windows 上使用启动器：
 
 交互式问答里“字典位置”直接回车，默认就是 dicts/common.txt。
 
-注意：内置字典只覆盖“常见弱口令 + 上述关键词原形”，像 qzks1234 这种“关键词+数字后缀”
-要用混合攻击（-a hybrid -m '?d?d?d?d'）或规则文件（包里 engines/john/run/rules/ 有
-best64、d3ad0ne、dive 等 13 个 .rule）。
+注意：内置字典只覆盖常见弱口令，像 password1234 这种“关键词+数字后缀”要用混合攻击
+（-a hybrid -m '?d?d?d?d'）或规则文件（包里 engines/john/run/rules/ 有 best64、d3ad0ne、
+dive 等 13 个 .rule）。
 
 ## 交互式（只给压缩包）
 

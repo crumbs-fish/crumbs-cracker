@@ -659,8 +659,8 @@ USAGE_MAIN = """\
   2) 字典攻击（最常用）
        ./crumbs-cracker.sh crack -a wordlist -w 字典.txt 压缩包.zip
        包内自带字典（可直接用，无需另下）：
-         dicts/common.txt       10050 条常用口令，含 xyc/qzks/qmks/yk/ks 大小写全变体、新英才
-         dicts/common-100k.txt  100049 条，命中率更高、耗时约 10 倍
+         dicts/common.txt       10001 条通用弱口令（首选，几秒跑完）
+         dicts/common-100k.txt  100000 条，命中率更高、耗时约 10 倍
        ./crumbs-cracker.sh crack -a wordlist -w dicts/common.txt 压缩包.zip
    不写 -w 时（wordlist / hybrid）自动使用包内 dicts/common.txt
   3) 纯暴力（掩码攻击，不需要字典）
