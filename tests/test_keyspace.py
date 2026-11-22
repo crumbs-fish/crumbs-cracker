@@ -47,7 +47,7 @@ def main():
     rc, out = run(['crack', '-a', 'mask', '-m', '?a', '--len-min', '1', '--len-max', '12',
                    '--dry-run', str(FX / 'mask.zip')])
     check('逐位 1-12 位截到 9 位（rc=0）', rc == 0 and '本次只逐位尝试 1-9 位' in out, 'rc=%s' % rc)
-    check('逐位 1-12 位仍然尝试 1-9 位', '== 长度 9' in out and '== 长度 10' not in out)
+    check('逐位 1-12 位仍然尝试 1-9 位', '长度 9 位' in out and '长度 10 位' not in out)
 
     # 3) 起始长度本身超限 -> 整单报错（没有可试的位数）
     rc, out = run(['crack', '-a', 'mask', '-m', '?a', '--len-min', '10', '--len-max', '12',
