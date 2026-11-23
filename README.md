@@ -147,7 +147,7 @@ GPU 一列是 hashcat `-b --machine-readable` 的吞吐：
 | rar4 | 135 H/s | 30.7 kH/s |
 | rar5 | 837 H/s | 48.2 kH/s |
 
-两点提醒：真实破解只喂几条候选时，hashcat 状态栏里的 Speed 是启动开销，不是吞吐，别拿它判断快慢；
+两点提醒：真跑时只喂几条候选，hashcat 状态栏里的 Speed 是启动开销，不是吞吐，别拿它判断快慢；
 rar4 在 CPU 上特别慢是因为 RAR3 要滚 262144 轮 SHA-1，GPU 上差距会小很多。混合模式走
 `--stdin --mask`，词表以文件句柄喂给 john 而不是读进内存，词表再大驱动自己的内存占用也基本不变。
 
