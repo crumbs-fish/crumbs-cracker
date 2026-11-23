@@ -2,6 +2,10 @@ name: build-packages
 
 on:
   workflow_dispatch:
+    inputs:
+      base_asset:
+        description: "Windows 包复用的上一版 SFX 地址（留空用 v1.0.0 那版做引擎底座）"
+        required: false
   push:
     tags: ["v*"]
 
@@ -77,8 +81,72 @@ jobs:
           SAMPLES_DIR: /nonexistent
         run: bash scripts/build-portable.sh dist
 
+      - name: 校验产物
+        run: |
+          set -e
+          cd dist
+          ls -l
+          7z t *.7z | tail -2
+          sha256sum *.7z > SHA256SUMS
+          cat SHA256SUMS
+
       - uses: actions/upload-artifact@v4
         with:
           name: crumbs-cracker-portable-linux-x64
-          path: dist/*.7z
+          path: |
+            dist/*.7z
+            dist/SHA256SUMS
+          if-no-files-found: error
+
+  windows-sfx:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 准备 7-Zip
+        shell: pwsh
+        run: '"C:\Program Files\7-Zip" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append'
+
+      - name: 解出上一版引擎
+        shell: pwsh
+        env:
+          BASE_ASSET: ${{ inputs.base_asset }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $url = $env:BASE_ASSET
+          if ([string]::IsNullOrWhiteSpace($url)) {
+            $url = 'https://github.com/crumbs-fish/crumbs-cracker/releases/download/v1.0.0/crumbs-cracker-portable-win64-sfx-20261122.exe'
+          }
+          Invoke-WebRequest -Uri $url -OutFile base.exe -UseBasicParsing
+          7z x -y -obase base.exe | Out-Null
+          if (-not (Test-Path 'base/crumbs-cracker-portable-win64')) { throw '解包后找不到 crumbs-cracker-portable-win64' }
+
+      - name: 覆盖驱动、文档与许可证
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $stage = 'base/crumbs-cracker-portable-win64'
+          Copy-Item crumbs_cracker.py "$stage/crumbs_cracker.py" -Force
+          Remove-Item "$stage/docs" -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item docs "$stage/docs" -Recurse -Force
+          Copy-Item LICENSE, THIRD_PARTY_LICENSES.md "$stage/" -Force
+          Remove-Item "$stage/licenses" -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item licenses "$stage/licenses" -Recurse -Force
+          Copy-Item scripts/portable-README-win.md "$stage/README.txt" -Force
+          Copy-Item scripts/portable-LICENSES.txt "$stage/LICENSES.txt" -Force
+
+      - name: 打自解压包
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Remove-Item base\pkg.7z -ErrorAction SilentlyContinue
+          7z a -t7z -mx=9 -m0=lzma2:d=64m:fb=273 -mmt=2 base\pkg.7z base\crumbs-cracker-portable-win64 | Out-Null
+          cmd /c copy /b "vendor\7zCon.sfx"+"base\pkg.7z" "base\crumbs-cracker-portable-win64-sfx.exe" | Out-Null
+          7z t base\crumbs-cracker-portable-win64-sfx.exe | Select-Object -Last 3
+          Get-FileHash base\crumbs-cracker-portable-win64-sfx.exe -Algorithm SHA256 | Format-List
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: crumbs-cracker-portable-win64-sfx
+          path: base/crumbs-cracker-portable-win64-sfx.exe
           if-no-files-found: error

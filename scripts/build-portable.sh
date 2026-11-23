@@ -97,6 +97,7 @@ done
 [ -f "$ROOT/scripts/portable-LICENSES.txt" ] && cp "$ROOT/scripts/portable-LICENSES.txt" "$STAGE/LICENSES.txt"
 [ -f "$ROOT/LICENSE" ] && cp "$ROOT/LICENSE" "$STAGE/LICENSE"
 [ -f "$ROOT/THIRD_PARTY_LICENSES.md" ] && cp "$ROOT/THIRD_PARTY_LICENSES.md" "$STAGE/THIRD_PARTY_LICENSES.md"
+[ -d "$ROOT/licenses" ] && cp -a "$ROOT/licenses" "$STAGE/licenses"
 
 SEVENZIP="$STAGE/engines/bin/7zz"
 [ -x "$SEVENZIP" ] || SEVENZIP=$(command -v 7z || command -v 7zz)
