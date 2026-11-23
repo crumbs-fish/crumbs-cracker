@@ -24,6 +24,19 @@
 | rar4 | `$RAR3$` | rar | 12500 / 23800 |
 | rar5 | `$rar5$` | RAR5 | 13000 |
 
+### 平台支持
+
+| 平台 | 状态 |
+| --- | --- |
+| Windows x64 | 已发布便携包（自解压 exe，内置 Python） |
+| Linux x64 | 已发布便携包（7z 包，引擎与字典都在包里） |
+| Linux arm64 | 正在适配：源码本身能跑，还差一键装引擎的脚本和真机实测 |
+| Android（Termux） | 正在适配：Termux 仓库有 python / clang / perl / 7zip / unrar，john 需要在本地编译 |
+| macOS | 没有测试设备，暂不支持 |
+
+arm64 上暂时只走 CPU（john）：Android 非 root 应用拿不到厂商的 OpenCL，
+Switch 这类 arm64 Linux 设备也没有可用的 OpenCL 运行时，hashcat 起不来。
+
 ### 许可证
 
 驱动代码（`crumbs_cracker.py`、`scripts/`、`tests/`、`docs/`）采用 **GPL-2.0-or-later**，全文见
