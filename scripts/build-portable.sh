@@ -43,12 +43,18 @@ chmod 0755 "$STAGE/engines/bin/7z2john"
 
 cp -a "$ROOT/engines/vendor/perl5" "$STAGE/engines/vendor/" 2>/dev/null || true
 # 7-Zip 静态单文件版（p7zip 的 7z 需要同目录 7z.so，不能单独拷走）
-if [ -x /tmp/7zzdl/7zz ]; then
-  install -m 0755 /tmp/7zzdl/7zz "$STAGE/engines/bin/7zz"
+SEVENZ_SRC="${SEVENZ_SRC:-/tmp/7zzdl/7zz}"
+if [ -x "$SEVENZ_SRC" ]; then
+  install -m 0755 "$SEVENZ_SRC" "$STAGE/engines/bin/7zz"
 else
-  echo "warn: 缺少 /tmp/7zzdl/7zz（静态 7-Zip），7z 复核将退化" >&2
+  echo "warn: 缺少 ${SEVENZ_SRC}（静态 7-Zip），7z 复核将退化" >&2
 fi
-install -m 0755 "$(readlink -f /usr/bin/unrar)" "$STAGE/engines/bin/unrar"
+UNRAR_SRC="${UNRAR_SRC:-$(command -v unrar || true)}"
+if [ -n "$UNRAR_SRC" ] && [ -x "$UNRAR_SRC" ]; then
+  install -m 0755 "$(readlink -f "$UNRAR_SRC")" "$STAGE/engines/bin/unrar"
+else
+  echo "warn: 找不到 unrar，RAR 复核将退化为 7zz" >&2
+fi
 
 # --- hashcat（GPU 加速；只带压缩包族模块，完整包 259 MB 太大）---
 HC_SRC="${HC_SRC:-/tmp/hcx3/hctiny}"
@@ -81,8 +87,9 @@ cat > "$STAGE/engines/engines.json" <<'EOS'
 }
 EOS
 
+SAMPLES_DIR="${SAMPLES_DIR:-/tmp/crumbs_fx}"
 for s in zipaes.zip zipcrypto.zip sevenz.7z rar4.rar rar5.rar mask.zip hybrid.zip words.txt words_bad.txt; do
-  [ -f "/tmp/crumbs_fx/$s" ] && install -m 0644 "/tmp/crumbs_fx/$s" "$STAGE/samples/$s"
+  [ -f "$SAMPLES_DIR/$s" ] && install -m 0644 "$SAMPLES_DIR/$s" "$STAGE/samples/$s"
 done
 [ -f "$ROOT/scripts/portable-README.md" ] && cp "$ROOT/scripts/portable-README.md" "$STAGE/README.txt"
 [ -f "$ROOT/scripts/portable-LICENSES.txt" ] && cp "$ROOT/scripts/portable-LICENSES.txt" "$STAGE/LICENSES.txt"

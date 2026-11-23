@@ -1,0 +1,80 @@
+name: build-packages
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  linux-portable:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 构建依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libssl-dev zlib1g-dev libgmp-dev libpcap-dev libbz2-dev p7zip-full perl
+
+      - name: 缓存 john-jumbo
+        uses: actions/cache@v4
+        with:
+          path: ~/john-src
+          key: john-37bebbe4b6442c8dd3888e5848ef062c0783e9f3
+
+      - name: 编译 john-jumbo
+        run: |
+          set -e
+          if [ ! -x ~/john-src/run/john ]; then
+            rm -rf ~/john-src
+            git clone --filter=blob:none https://github.com/openwall/john ~/john-src
+            cd ~/john-src
+            git checkout 37bebbe4b6442c8dd3888e5848ef062c0783e9f3
+            ./configure
+            make -sj"$(nproc)"
+          fi
+          ~/john-src/run/john --list=build-info | head -3
+
+      - name: 下载并组装引擎
+        run: |
+          set -eux
+          mkdir -p engines/john engines/hashcat/modules engines/bin engines/vendor
+          cp -a ~/john-src/run engines/john/run
+
+          curl -fsSL -o /tmp/hc.7z https://github.com/hashcat/hashcat/releases/download/v6.2.6/hashcat-6.2.6.7z
+          7z x -y -o/tmp/hc /tmp/hc.7z > /dev/null
+          HC=/tmp/hc/hashcat-6.2.6
+          install -m 0755 "$HC/hashcat.bin" engines/hashcat/hashcat.bin
+          install -m 0644 "$HC/hashcat.hcstat2" engines/hashcat/hashcat.hcstat2
+          cp -a "$HC/OpenCL" engines/hashcat/OpenCL
+          for m in 00000 11600 12500 13000 13600 17200 17210 17220 17225 17230 23700 23800; do
+            install -m 0644 "$HC/modules/module_$m.so" "engines/hashcat/modules/module_$m.so"
+          done
+
+          curl -fsSL -o /tmp/7z.tar.xz https://www.7-zip.org/a/7z2301-linux-x64.tar.xz
+          tar -xJf /tmp/7z.tar.xz -C /tmp
+          install -m 0755 /tmp/7zz engines/bin/7zz
+
+          curl -fsSL -o /tmp/rar.tar.gz https://www.rarlab.com/rar/rarlinux-x64-624.tar.gz
+          tar -xzf /tmp/rar.tar.gz -C /tmp
+          install -m 0755 /tmp/rar/unrar engines/bin/unrar
+
+          curl -fsSL -o /tmp/lzma.deb http://deb.debian.org/debian/pool/main/libc/libcompress-raw-lzma-perl/libcompress-raw-lzma-perl_2.204-1_amd64.deb
+          dpkg-deb -x /tmp/lzma.deb engines/vendor/perl5
+
+      - name: 单元测试
+        run: |
+          python3 -m py_compile crumbs_cracker.py
+          python3 tests/test_keyspace.py
+          python3 tests/test_gpu_hashcat.py
+
+      - name: 打包
+        env:
+          SAMPLES_DIR: /nonexistent
+        run: bash scripts/build-portable.sh dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: crumbs-cracker-portable-linux-x64
+          path: dist/*.7z
+          if-no-files-found: error
