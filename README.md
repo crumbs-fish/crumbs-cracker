@@ -30,8 +30,8 @@
 | --- | --- |
 | Windows x64 | 已发布便携包（自解压 exe，内置 Python） |
 | Linux x64 | 已发布便携包（7z 包，引擎与字典都在包里） |
-| Linux arm64 | 正在适配：源码本身能跑，还差一键装引擎的脚本和真机实测 |
-| Android（Termux） | 正在适配：Termux 仓库有 python / clang / perl / 7zip / unrar，john 需要在本地编译 |
+| Linux arm64 | 正在适配：源码能跑，引擎用 [scripts/build-switchroot.sh](scripts/build-switchroot.sh) 装，见 [docs/ARM64.md](docs/ARM64.md) |
+| Android（Termux） | 正在适配：john 在本地编译，用 [scripts/build-termux.sh](scripts/build-termux.sh)，见 [docs/ARM64.md](docs/ARM64.md) |
 | macOS | 没有测试设备，暂不支持 |
 
 arm64 上暂时只走 CPU（john）：Android 非 root 应用拿不到厂商的 OpenCL，
