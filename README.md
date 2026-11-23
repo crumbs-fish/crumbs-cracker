@@ -193,5 +193,3 @@ rar4 在 CPU 上特别慢是因为 RAR3 要滚 262144 轮 SHA-1，GPU 上差距�
 不能用的场合：别人的压缩包、批量撞库、收费代破解、任何绕过授权拿数据的场景。未经授权破解他人
 数据，在很多地方是违法的，责任自负。
 
-给审核看的一句英文：This tool only recovers passwords for archives you own or are explicitly
-authorized to test. It does not bypass DRM, steal data, or provide remote access.
