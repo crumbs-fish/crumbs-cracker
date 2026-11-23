@@ -71,6 +71,9 @@ jobs:
 
       - name: 打包
         env:
+          HC_SRC: ${{ github.workspace }}/engines/hashcat
+          SEVENZ_SRC: ${{ github.workspace }}/engines/bin/7zz
+          UNRAR_SRC: ${{ github.workspace }}/engines/bin/unrar
           SAMPLES_DIR: /nonexistent
         run: bash scripts/build-portable.sh dist
 

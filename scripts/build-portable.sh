@@ -3,6 +3,8 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="${1:-$ROOT/dist}"
+mkdir -p "$OUT"
+OUT="$(cd "$OUT" && pwd)"
 STAGE="$OUT/crumbs-cracker-portable"
 VER="$(date +%Y%m%d)"
 
