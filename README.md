@@ -186,4 +186,12 @@ rar4 在 CPU 上特别慢是因为 RAR3 要滚 262144 轮 SHA-1，GPU 上差距�
 
 ### 合法使用
 
-只用于找回你自己的密码。未经授权破解他人数据，责任自负。
+这个项目只做一件事：把你设过、后来忘了的密码试出来。
+
+能用的场合：自己的压缩包、公司内部你有权限的数据、拿到书面授权的取证或渗透测试。
+
+不能用的场合：别人的压缩包、批量撞库、收费代破解、任何绕过授权拿数据的场景。未经授权破解他人
+数据，在很多地方是违法的，责任自负。
+
+给审核看的一句英文：This tool only recovers passwords for archives you own or are explicitly
+authorized to test. It does not bypass DRM, steal data, or provide remote access.
