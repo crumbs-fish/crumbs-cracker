@@ -15,6 +15,7 @@
 | `tests/` | `test_keyspace.py`、`test_gpu_hashcat.py`、`test_mode_identify.sh`、`tests/rebuild-fixtures.sh`（重建 /tmp/crumbs_fx 样本） |
 | `/tmp/7zzdl/7zz` | 静态 7-Zip（打包与包内 7z 复核都用它；`https://www.7-zip.org/a/7z2301-linux-x64.tar.xz` 解出的 `7zz`） |
 | `/tmp/crumbs_accept.sh` | 7 档案 × 3 断言的全链路验收（本机临时脚本，丢了就按 §4 重写） |
+| `.github/workflows/build.yml` | CI 打包（Linux 从零构建、Windows 复用上一版引擎），见 §5 |
 
 ## 1. 改完代码先跑回归（约 3 分钟）
 
@@ -76,7 +77,21 @@ cp README.md USAGE.md DELIVERY.md STATUS-*.md portable-README-*.md win-bootstrap
 
 文档要一起更新：`-h`（`USAGE_MAIN`/`USAGE_CRACK`）、`docs/USAGE.md`、`README.md` 的“分发产物”表、`docs/STATUS-*.md` 追加一节。
 
-## 5. 踩过的坑（别再踩）
+## 5. 走 CI 打包（推荐，本机不用装引擎）
+
+`.github/workflows/build.yml` 有两个 job，`workflow_dispatch` 或打 `v*` tag 都会跑：
+
+| job | 做什么 | 产物 |
+| --- | --- | --- |
+| `linux-portable` | ubuntu-22.04 上编 john（commit 固定）、下 hashcat 6.2.6 / 7zz / unrar / perl 模块，跑单测，再 `build-portable.sh` 打包 | `crumbs-cracker-portable-linux-x64-<日期>.7z` + `SHA256SUMS` |
+| `windows-sfx` | 解出上一版 SFX 当引擎底座，只覆盖 `crumbs_cracker.py`、`docs/`、`licenses/`、`LICENSE`、`THIRD_PARTY_LICENSES.md`、两个 README，再用 `vendor/7zCon.sfx` 重打 | `crumbs-cracker-portable-win64-sfx.exe` |
+
+- 触发：`POST /repos/crumbs-fish/crumbs-cracker/actions/workflows/build.yml/dispatches`，body `{"ref":"main"}`；或网页 Actions → build-packages → Run workflow。
+- `windows-sfx` 的底座默认是 v1.0.0 那条 release 资产，换底时给 `base_asset` 传新地址。
+- 取产物：`GET /actions/runs/<id>/artifacts` 下 zip，解出后改名带日期、生成 `.sha256`、传 release。
+- CI 只重建 Linux 引擎；Windows 的 john/hashcat/7z 二进制沿用已发布版本（本来也没重建过）。
+
+## 6. 踩过的坑（别再踩）
 
 - `pkill -f "scp -P 2222 .*pkg.exe"` 会匹配到自己那条 bash 并把它杀掉，后续命令不执行；清传输进程要换特征串，或先 `job_kill`。
 - SFX 的 `-o` 经 ssh → cmd 多一层转义会变 `-o\C:\...`，报“文件名、目录名或卷标语法不正确”；稳妥写法是 `cd /d` 到父目录用相对路径 `-osfxout`，或本机 cmd 里 `-o"D:\tools" -y`。
