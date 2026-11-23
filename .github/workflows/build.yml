@@ -30,6 +30,7 @@ jobs:
             git clone --filter=blob:none https://github.com/openwall/john ~/john-src
             cd ~/john-src
             git checkout 37bebbe4b6442c8dd3888e5848ef062c0783e9f3
+            cd src
             ./configure
             make -sj"$(nproc)"
           fi
